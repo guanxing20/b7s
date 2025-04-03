@@ -95,84 +95,88 @@ b7s depends on the following repositories:
 
 ```mermaid
 flowchart TD
-    subgraph "Distributed Node Network"
-        NodeCLI["Node CLI Entrypoint"]:::cli
-        subgraph "Node Component"
-            HeadNode["Head Node (REST API, Cluster Management)"]:::node
-            WorkerNode["Worker Node (Job Execution)"]:::node
-        end
-        subgraph "Consensus Modules"
-            PBFT["PBFT Consensus"]:::consensus
-            Raft["Raft Consensus"]:::consensus
-        end
-        APIService["API Service"]:::api
-        Executor["Executor Module"]:::runtime
-        FileStore["File Store"]:::storage
-        Networking["Networking & Host"]:::network
+    %% External Entity
+    ExternalClients["External Clients"]:::external
+
+    %% API Layer
+    subgraph "API Layer"
+        API["API Endpoints"]:::api
     end
 
-    subgraph "Utilities & Configuration"
-        CLITools["CLI Tools"]:::cli
-        subgraph "Configuration Management"
-            ConfigPrimary["Configuration (config)"]:::config
-            ConfigSample["Configuration (configs)"]:::config
-        end
-        Telemetry["Telemetry Service"]:::telemetry
+    %% Consensus Module
+    subgraph "Consensus Module"
+        PBFT["PBFT Module"]:::consensus
+        Raft["Raft Module"]:::consensus
     end
 
-    %% Connections between nodes
-    APIService -->|"calls"| HeadNode
-    HeadNode -->|"coordinates"| WorkerNode
-    WorkerNode -->|"reports"| HeadNode
+    %% Core Node & Networking
+    subgraph "Core Node & Networking"
+        Head["Head Node"]:::node
+        Worker["Worker Node"]:::node
+        Host["Host (Discovery/Publisher)"]:::node
+    end
 
-    HeadNode -->|"consensusComm"| PBFT
-    HeadNode -->|"consensusComm"| Raft
-    WorkerNode -->|"consensusComm"| PBFT
-    WorkerNode -->|"consensusComm"| Raft
+    %% Executor/Worker
+    subgraph "Executor/Worker"
+        Executor["Executor Service"]:::executor
+    end
 
-    HeadNode -->|"sendsTelemetry"| Telemetry
-    WorkerNode -->|"sendsTelemetry"| Telemetry
+    %% Storage
+    subgraph "Storage"
+        FStore["File Store"]:::storage
+        Store["State Store"]:::storage
+    end
 
-    Networking -->|"connectsTo"| HeadNode
-    Networking -->|"connectsTo"| WorkerNode
+    %% Cryptography
+    subgraph "Cryptography"
+        Crypto["Crypto Services"]:::crypto
+    end
 
-    WorkerNode -->|"executesTasks"| Executor
-    Executor -->|"storesData"| FileStore
+    %% Command-line Interfaces
+    subgraph "Command-line Interfaces"
+        CLI["CLI Tools"]:::cli
+    end
 
-    CLITools -->|"managesNodes"| NodeCLI
-    NodeCLI -->|"initiates"| HeadNode
-
-    ConfigPrimary -->|"configures"| HeadNode
-    ConfigSample -->|"configures"| WorkerNode
-    ConfigPrimary -->|"configures"| APIService
-
-    APIService -->|"executesTasks"| Executor
+    %% Connections
+    ExternalClients -->|"calls"| API
+    API -->|"processes"| Head
+    Head -->|"delegates to"| Worker
+    Head -->|"syncs with"| PBFT
+    Head -->|"syncs with"| Raft
+    Head -->|"delegates tasks"| Executor
+    Head -->|"persists to"| FStore
+    Head -->|"persists to"| Store
+    API -->|"secureComm"| Crypto
+    PBFT -->|"validateWith"| Crypto
+    Raft -->|"validateWith"| Crypto
+    Worker -->|"discoveryVia"| Host
+    Host <-->|"p2pComm"| Head
+    PBFT -->|"logsTo"| FStore
+    Raft -->|"logsTo"| Store
+    CLI -->|"commands"| Head
 
     %% Click Events
-    click HeadNode "https://github.com/blessnetwork/b7s/tree/main/node/head"
-    click WorkerNode "https://github.com/blessnetwork/b7s/tree/main/node/worker"
-    click NodeCLI "https://github.com/blessnetwork/b7s/tree/main/cmd/node"
-    click PBFT "https://github.com/blessnetwork/b7s/tree/main/consensus/pbft"
-    click Raft "https://github.com/blessnetwork/b7s/tree/main/consensus/raft"
-    click APIService "https://github.com/blessnetwork/b7s/tree/main/api/"
+    click API "https://github.com/blessnetwork/b7s/tree/main/api/"
+    click PBFT "https://github.com/blessnetwork/b7s/tree/main/consensus/pbft/"
+    click Raft "https://github.com/blessnetwork/b7s/tree/main/consensus/raft/"
+    click Head "https://github.com/blessnetwork/b7s/tree/main/node/"
+    click Worker "https://github.com/blessnetwork/b7s/tree/main/node/"
+    click Host "https://github.com/blessnetwork/b7s/tree/main/host/"
     click Executor "https://github.com/blessnetwork/b7s/tree/main/executor/"
-    click FileStore "https://github.com/blessnetwork/b7s/tree/main/fstore/"
-    click Networking "https://github.com/blessnetwork/b7s/tree/main/host/"
-    click CLITools "https://github.com/blessnetwork/b7s/tree/main/cmd/"
-    click ConfigPrimary "https://github.com/blessnetwork/b7s/tree/main/config/"
-    click ConfigSample "https://github.com/blessnetwork/b7s/tree/main/configs/"
-    click Telemetry "https://github.com/blessnetwork/b7s/tree/main/telemetry/"
+    click FStore "https://github.com/blessnetwork/b7s/tree/main/fstore/"
+    click Store "https://github.com/blessnetwork/b7s/tree/main/store/"
+    click Crypto "https://github.com/blessnetwork/b7s/tree/main/crypto/"
+    click CLI "https://github.com/blessnetwork/b7s/tree/main/cmd/"
 
     %% Styles
-    classDef node fill:#cce5ff,stroke:#00529B,stroke-width:2px;
-    classDef consensus fill:#dff0d8,stroke:#3c763d,stroke-width:2px;
-    classDef api fill:#f2dede,stroke:#a94442,stroke-width:2px;
-    classDef runtime fill:#fcf8e3,stroke:#8a6d3b,stroke-width:2px;
-    classDef storage fill:#d9edf7,stroke:#31708f,stroke-width:2px;
-    classDef network fill:#f5f5f5,stroke:#666666,stroke-width:2px;
-    classDef cli fill:#eeeeee,stroke:#999999,stroke-width:2px;
-    classDef config fill:#ffe6cc,stroke:#cc6600,stroke-width:2px;
-    classDef telemetry fill:#e6ffe6,stroke:#339933,stroke-width:2px;
+    classDef external fill:#fefefe,stroke:#333,stroke-width:2px;
+    classDef api fill:#cce5ff,stroke:#1a75ff,stroke-width:2px;
+    classDef consensus fill:#d1e7dd,stroke:#0f5132,stroke-width:2px;
+    classDef node fill:#fff3cd,stroke:#ffc107,stroke-width:2px;
+    classDef executor fill:#fde2e2,stroke:#d9534f,stroke-width:2px;
+    classDef storage fill:#e2e3e5,stroke:#6c757d,stroke-width:2px;
+    classDef crypto fill:#e2f0d9,stroke:#28a745,stroke-width:2px;
+    classDef cli fill:#f8d7da,stroke:#dc3545,stroke-width:2px;
 ```
 
 ## Contributing

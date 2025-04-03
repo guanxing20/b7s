@@ -91,6 +91,90 @@ b7s depends on the following repositories:
 - blessnetwork/runtime
 - blessnetwork/orchestration-chain
 
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph "Distributed Node Network"
+        NodeCLI["Node CLI Entrypoint"]:::cli
+        subgraph "Node Component"
+            HeadNode["Head Node (REST API, Cluster Management)"]:::node
+            WorkerNode["Worker Node (Job Execution)"]:::node
+        end
+        subgraph "Consensus Modules"
+            PBFT["PBFT Consensus"]:::consensus
+            Raft["Raft Consensus"]:::consensus
+        end
+        APIService["API Service"]:::api
+        Executor["Executor Module"]:::runtime
+        FileStore["File Store"]:::storage
+        Networking["Networking & Host"]:::network
+    end
+
+    subgraph "Utilities & Configuration"
+        CLITools["CLI Tools"]:::cli
+        subgraph "Configuration Management"
+            ConfigPrimary["Configuration (config)"]:::config
+            ConfigSample["Configuration (configs)"]:::config
+        end
+        Telemetry["Telemetry Service"]:::telemetry
+    end
+
+    %% Connections between nodes
+    APIService -->|"calls"| HeadNode
+    HeadNode -->|"coordinates"| WorkerNode
+    WorkerNode -->|"reports"| HeadNode
+
+    HeadNode -->|"consensusComm"| PBFT
+    HeadNode -->|"consensusComm"| Raft
+    WorkerNode -->|"consensusComm"| PBFT
+    WorkerNode -->|"consensusComm"| Raft
+
+    HeadNode -->|"sendsTelemetry"| Telemetry
+    WorkerNode -->|"sendsTelemetry"| Telemetry
+
+    Networking -->|"connectsTo"| HeadNode
+    Networking -->|"connectsTo"| WorkerNode
+
+    WorkerNode -->|"executesTasks"| Executor
+    Executor -->|"storesData"| FileStore
+
+    CLITools -->|"managesNodes"| NodeCLI
+    NodeCLI -->|"initiates"| HeadNode
+
+    ConfigPrimary -->|"configures"| HeadNode
+    ConfigSample -->|"configures"| WorkerNode
+    ConfigPrimary -->|"configures"| APIService
+
+    APIService -->|"executesTasks"| Executor
+
+    %% Click Events
+    click HeadNode "https://github.com/blessnetwork/b7s/tree/main/node/head"
+    click WorkerNode "https://github.com/blessnetwork/b7s/tree/main/node/worker"
+    click NodeCLI "https://github.com/blessnetwork/b7s/tree/main/cmd/node"
+    click PBFT "https://github.com/blessnetwork/b7s/tree/main/consensus/pbft"
+    click Raft "https://github.com/blessnetwork/b7s/tree/main/consensus/raft"
+    click APIService "https://github.com/blessnetwork/b7s/tree/main/api/"
+    click Executor "https://github.com/blessnetwork/b7s/tree/main/executor/"
+    click FileStore "https://github.com/blessnetwork/b7s/tree/main/fstore/"
+    click Networking "https://github.com/blessnetwork/b7s/tree/main/host/"
+    click CLITools "https://github.com/blessnetwork/b7s/tree/main/cmd/"
+    click ConfigPrimary "https://github.com/blessnetwork/b7s/tree/main/config/"
+    click ConfigSample "https://github.com/blessnetwork/b7s/tree/main/configs/"
+    click Telemetry "https://github.com/blessnetwork/b7s/tree/main/telemetry/"
+
+    %% Styles
+    classDef node fill:#cce5ff,stroke:#00529B,stroke-width:2px;
+    classDef consensus fill:#dff0d8,stroke:#3c763d,stroke-width:2px;
+    classDef api fill:#f2dede,stroke:#a94442,stroke-width:2px;
+    classDef runtime fill:#fcf8e3,stroke:#8a6d3b,stroke-width:2px;
+    classDef storage fill:#d9edf7,stroke:#31708f,stroke-width:2px;
+    classDef network fill:#f5f5f5,stroke:#666666,stroke-width:2px;
+    classDef cli fill:#eeeeee,stroke:#999999,stroke-width:2px;
+    classDef config fill:#ffe6cc,stroke:#cc6600,stroke-width:2px;
+    classDef telemetry fill:#e6ffe6,stroke:#339933,stroke-width:2px;
+```
+
 ## Contributing
 
 See src/README for information on contributing to the b7s project.

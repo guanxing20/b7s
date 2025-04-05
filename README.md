@@ -91,6 +91,94 @@ b7s depends on the following repositories:
 - blessnetwork/runtime
 - blessnetwork/orchestration-chain
 
+## Architecture
+
+```mermaid
+flowchart TD
+    %% External Entity
+    ExternalClients["External Clients"]:::external
+
+    %% API Layer
+    subgraph "API Layer"
+        API["API Endpoints"]:::api
+    end
+
+    %% Consensus Module
+    subgraph "Consensus Module"
+        PBFT["PBFT Module"]:::consensus
+        Raft["Raft Module"]:::consensus
+    end
+
+    %% Core Node & Networking
+    subgraph "Core Node & Networking"
+        Head["Head Node"]:::node
+        Worker["Worker Node"]:::node
+        Host["Host (Discovery/Publisher)"]:::node
+    end
+
+    %% Executor/Worker
+    subgraph "Executor/Worker"
+        Executor["Executor Service"]:::executor
+    end
+
+    %% Storage
+    subgraph "Storage"
+        FStore["File Store"]:::storage
+        Store["State Store"]:::storage
+    end
+
+    %% Cryptography
+    subgraph "Cryptography"
+        Crypto["Crypto Services"]:::crypto
+    end
+
+    %% Command-line Interfaces
+    subgraph "Command-line Interfaces"
+        CLI["CLI Tools"]:::cli
+    end
+
+    %% Connections
+    ExternalClients -->|"calls"| API
+    API -->|"processes"| Head
+    Head -->|"delegates to"| Worker
+    Head -->|"syncs with"| PBFT
+    Head -->|"syncs with"| Raft
+    Head -->|"delegates tasks"| Executor
+    Head -->|"persists to"| FStore
+    Head -->|"persists to"| Store
+    API -->|"secureComm"| Crypto
+    PBFT -->|"validateWith"| Crypto
+    Raft -->|"validateWith"| Crypto
+    Worker -->|"discoveryVia"| Host
+    Host <-->|"p2pComm"| Head
+    PBFT -->|"logsTo"| FStore
+    Raft -->|"logsTo"| Store
+    CLI -->|"commands"| Head
+
+    %% Click Events
+    click API "https://github.com/blessnetwork/b7s/tree/main/api/"
+    click PBFT "https://github.com/blessnetwork/b7s/tree/main/consensus/pbft/"
+    click Raft "https://github.com/blessnetwork/b7s/tree/main/consensus/raft/"
+    click Head "https://github.com/blessnetwork/b7s/tree/main/node/"
+    click Worker "https://github.com/blessnetwork/b7s/tree/main/node/"
+    click Host "https://github.com/blessnetwork/b7s/tree/main/host/"
+    click Executor "https://github.com/blessnetwork/b7s/tree/main/executor/"
+    click FStore "https://github.com/blessnetwork/b7s/tree/main/fstore/"
+    click Store "https://github.com/blessnetwork/b7s/tree/main/store/"
+    click Crypto "https://github.com/blessnetwork/b7s/tree/main/crypto/"
+    click CLI "https://github.com/blessnetwork/b7s/tree/main/cmd/"
+
+    %% Styles
+    classDef external fill:#fefefe,stroke:#333,stroke-width:2px;
+    classDef api fill:#cce5ff,stroke:#1a75ff,stroke-width:2px;
+    classDef consensus fill:#d1e7dd,stroke:#0f5132,stroke-width:2px;
+    classDef node fill:#fff3cd,stroke:#ffc107,stroke-width:2px;
+    classDef executor fill:#fde2e2,stroke:#d9534f,stroke-width:2px;
+    classDef storage fill:#e2e3e5,stroke:#6c757d,stroke-width:2px;
+    classDef crypto fill:#e2f0d9,stroke:#28a745,stroke-width:2px;
+    classDef cli fill:#f8d7da,stroke:#dc3545,stroke-width:2px;
+```
+
 ## Contributing
 
 See src/README for information on contributing to the b7s project.
